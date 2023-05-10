@@ -23,19 +23,22 @@ import {
 })
 export class ProductListComponent {
   pageTitle = 'Product List';
-  errorMessage = '';
+  
+  private errorMessageSubject = new Subject();
+  errorMessage$ = this.errorMessageSubject.asObservable();
+  
   private categorSelectedSubject = new BehaviorSubject<number>(0);
   cateorySelectedAction$ = this.categorSelectedSubject.asObservable();
 
   categories$ = this.productCategoryService.productCategories$.pipe(
     catchError((err) => {
-      this.errorMessage = err;
+      this.errorMessageSubject.next(err);
       return EMPTY;
     })
   );
 
   products$ = combineLatest([
-    this.productService.productsWithCategory$,
+    this.productService.productsWithAdd$,
     this.cateorySelectedAction$,
   ]).pipe(
     map(([products, selectedcategoryId]) =>
@@ -44,7 +47,7 @@ export class ProductListComponent {
       )
     ),
     catchError((err) => {
-      this.errorMessage = err;
+      this.errorMessageSubject.next(err);
       return EMPTY;
     })
   );
@@ -55,7 +58,7 @@ export class ProductListComponent {
   ) {}
 
   onAdd(): void {
-    console.log('Not yet implemented');
+    this.productService.addProduct();
   }
 
   onSelected(categoryId: string): void {
