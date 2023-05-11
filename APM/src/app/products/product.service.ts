@@ -9,6 +9,7 @@ import {
   merge,
   Observable,
   scan,
+  shareReplay,
   Subject,
   tap,
   throwError,
@@ -26,6 +27,7 @@ export class ProductService {
 
   products$ = this.http.get<Product[]>(this.productsUrl).pipe(
     tap((data) => console.log('Products: ', JSON.stringify(data))),
+    shareReplay(1),
     catchError(this.handleError)
   );
 
@@ -42,7 +44,8 @@ export class ProductService {
             category: categories.find((c) => product.categoryId === c.id)?.name,
             searchKey: [product.productName],
           } as Product)
-      )
+      ),
+      shareReplay(1)
     )
   );
 
@@ -56,7 +59,8 @@ export class ProductService {
     map(([products, selectedProductId]) =>
       products.find((product) => product.id === selectedProductId)
     ),
-    tap((product) => console.log('selectedProduct', product))
+    tap((product) => console.log('selectedProduct', product)),
+    shareReplay(1)
   );
 
   private productInsertedSubject = new Subject<Product>();
