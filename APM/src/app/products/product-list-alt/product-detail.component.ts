@@ -3,27 +3,48 @@ import { Supplier } from '../../suppliers/supplier';
 import { Product } from '../product';
 
 import { ProductService } from '../product.service';
-import { EMPTY, Subject, catchError } from 'rxjs';
+import { EMPTY, Subject, catchError, combineLatest, filter, map } from 'rxjs';
 
 @Component({
   selector: 'pm-product-detail',
   templateUrl: './product-detail.component.html',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProductDetailComponent {
-  pageTitle = 'Product Detail';
-  productSuppliers: Supplier[] | null = null;
-
   private errorMessageSubject = new Subject();
-  errorMessage$ = this.errorMessageSubject.asObservable()
+  errorMessage$ = this.errorMessageSubject.asObservable();
 
-  product$ = this.productService.selectedProduct$. pipe(
-    catchError(err=> {
+  product$ = this.productService.selectedProduct$.pipe(
+    catchError((err) => {
       this.errorMessageSubject.next(err);
-      return EMPTY
+      return EMPTY;
     })
-  )
+  );
 
-  constructor(private productService: ProductService) { }
+  pageTitle$ = this.product$.pipe(
+    map((p) => (p ? `Product Detail for: ${p.productName}` : null))
+  );
 
+  productSuppliers$ = this.productService.selectedProductSuppliers$.pipe(
+    catchError((err) => {
+      this.errorMessageSubject.next(err);
+      return EMPTY;
+    })
+  );
+
+  //combined ALL streams to one view model
+  vm$ = combineLatest([
+    this.product$,
+    this.productSuppliers$,
+    this.pageTitle$,
+  ]).pipe(
+    filter(([product]) => Boolean(product)),
+    map(([product, productSuppliers, pageTitle]) => ({
+      product,
+      productSuppliers,
+      pageTitle,
+    }))
+  );
+
+  constructor(private productService: ProductService) {}
 }

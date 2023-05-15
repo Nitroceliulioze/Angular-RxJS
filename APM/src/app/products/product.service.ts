@@ -5,12 +5,16 @@ import {
   BehaviorSubject,
   catchError,
   combineLatest,
+  filter,
+  forkJoin,
   map,
   merge,
   Observable,
+  of,
   scan,
   shareReplay,
   Subject,
+  switchMap,
   tap,
   throwError,
 } from 'rxjs';
@@ -18,6 +22,7 @@ import {
 import { Product } from './product';
 import { ProductCategoryService } from '../product-categories/product-category.service';
 import { SupplierService } from '../suppliers/supplier.service';
+import { Supplier } from '../suppliers/supplier';
 
 @Injectable({
   providedIn: 'root',
@@ -63,6 +68,31 @@ export class ProductService {
     tap((product) => console.log('selectedProduct', product)),
     shareReplay(1)
   );
+
+  // // related data streams - get it all approach
+  // selectedproductSuppiers$ = combineLatest([
+  //   this.selectedProduct$,
+  //   this.supplierService.supplier$
+  // ]).pipe(
+  //   map(([selectedProduct, suppliers]) =>
+  //   suppliers.filter(supplier => selectedProduct?.supplierIds?.includes(supplier.id))
+  //   )
+  // );
+
+
+  // related data streams - Just in time approach
+  selectedProductSuppliers$ = this.selectedProduct$
+  .pipe(
+    filter(product=> Boolean(product)),
+    switchMap(selectedProduct => {
+      if (selectedProduct?.supplierIds) {
+        return forkJoin(selectedProduct.supplierIds.map(supplierId => this.http.get<Supplier>(`${this.suppliersUrl}/${supplierId}`)))
+      } else {
+        return of([]);
+      }
+    }),
+    tap(suppliers => console.log('product suppliers', JSON.stringify(suppliers)))
+  )
 
   private productInsertedSubject = new Subject<Product>();
   productInsertedAction$ = this.productInsertedSubject.asObservable();

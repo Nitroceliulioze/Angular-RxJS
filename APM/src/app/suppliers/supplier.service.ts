@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 
-import { throwError, Observable, of, map, tap, concatMap, mergeMap, switchMap } from 'rxjs';
+import { throwError, Observable, of, map, tap, concatMap, mergeMap, switchMap, shareReplay, catchError } from 'rxjs';
 import { Supplier } from './supplier';
 
 @Injectable({
@@ -10,20 +10,27 @@ import { Supplier } from './supplier';
 export class SupplierService {
   suppliersUrl = 'api/suppliers';
 
-  supplierWithConcatMap$ = of(1, 5, 8).pipe(
-    tap(id => console.log('concatMap source Observable', id)),
-    concatMap(id => this.http.get<Supplier>(`${this.suppliersUrl}/${id}`))
-  );
-  
-  supplierWithMergeMap$ = of(1, 5, 8).pipe(
-    tap(id => console.log('mergeMap source Observable', id)),
-    mergeMap(id => this.http.get<Supplier>(`${this.suppliersUrl}/${id}`))
-  );
+  supplier$ = this.http.get<Supplier[]>(this.suppliersUrl).pipe(
+    tap(data => console.log('suppliers', JSON.stringify(data))),
+    shareReplay(1),
+    catchError(this.handleError)
+  )
 
-  supplierWithSwitchMap$ = of(1, 5, 8).pipe(
-    tap(id => console.log('switchMap source Observable', id)),
-    switchMap(id => this.http.get<Supplier>(`${this.suppliersUrl}/${id}`))
-  );
+  // Higher-order mapping operators
+  // supplierWithConcatMap$ = of(1, 5, 8).pipe(
+  //   tap(id => console.log('concatMap source Observable', id)),
+  //   concatMap(id => this.http.get<Supplier>(`${this.suppliersUrl}/${id}`))
+  // );
+  
+  // supplierWithMergeMap$ = of(1, 5, 8).pipe(
+  //   tap(id => console.log('mergeMap source Observable', id)),
+  //   mergeMap(id => this.http.get<Supplier>(`${this.suppliersUrl}/${id}`))
+  // );
+
+  // supplierWithSwitchMap$ = of(1, 5, 8).pipe(
+  //   tap(id => console.log('switchMap source Observable', id)),
+  //   switchMap(id => this.http.get<Supplier>(`${this.suppliersUrl}/${id}`))
+  // );
 
   constructor(private http: HttpClient) {
     // this.supplierWithMergeMap$.subscribe((item) => console.log('mergeMap result', item));
